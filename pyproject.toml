@@ -1,0 +1,59 @@
+[project]
+name = "oil-and-gas-analyst"
+version = "0.1.0"
+description = "AI-агент «Нефтегазовый аналитик»"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # UI
+    "gradio>=4.44.0",
+    # LangChain / LangGraph (граф агента — этапы 2, 6)
+    "langchain>=1.2.18",
+    "langchain-openai>=1.2.1",
+    "langchain-text-splitters>=1.1.2",
+    "langgraph>=1.1.10",
+    "langdetect>=1.0.9",
+    "tiktoken>=0.12.0",
+    # Векторное хранилище (этап 3)
+    "qdrant-client>=1.18.0",
+    # PDF и документы (этап 3)
+    "pymupdf4llm>=1.27.2.3",
+    "pdfplumber>=0.11.9",
+    # Веб-поиск (этап 4)
+    "tavily-python>=0.7.24",
+    # Прогнозирование (этап 5)
+    "statsmodels>=0.14.6",
+    "scikit-learn>=1.7.0",
+    "yfinance>=1.3.0",
+    # Данные
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "pyyaml>=6.0.3",
+    # Инфраструктура
+    "httpx>=0.28.1",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "structlog>=25.0.0",
+    "tenacity>=9.0.0",
+    "typer>=0.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
