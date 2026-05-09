@@ -1,0 +1,27 @@
+# Dev-override: auto-loaded командой `docker compose up` (без флагов).
+# Hot reload через watchmedo + bind-mount исходников.
+# Для prod-запуска используйте: docker compose -f docker-compose.yml up
+services:
+
+  app:
+    # exec-form (YAML list) — без участия shell, поэтому ';' в --pattern
+    # не разорвётся на отдельные команды.
+    command:
+      - watchmedo
+      - auto-restart
+      - --directory=./src
+      - --directory=./prompts
+      - --pattern=*.py;*.yaml;*.yml
+      - --recursive
+      - --
+      - python
+      - main.py
+      - serve
+    volumes:
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+      - ./prompts:/app/prompts
+      - ./data:/app/data:ro
+    environment:
+      APP_ENV: dev
+      GRADIO_ANALYTICS_ENABLED: "False"
