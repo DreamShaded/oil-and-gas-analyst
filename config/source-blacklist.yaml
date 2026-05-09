@@ -1,0 +1,19 @@
+# Жёсткий отсев: таблоиды, агрегаторы кликбейта, заведомо ненадёжные источники.
+
+tabloids_clickbait:
+  - dailymail.co.uk
+  - the-sun.com
+  - mirror.co.uk
+  - nypost.com
+  - lifenews.ru
+  - kp.ru
+
+low_quality_aggregators:
+  - zerohedge.com
+  - rt.com # геополитически окрашенный, в analytics-задачах вредит
+  - sputniknews.com
+  - presstv.ir
+
+scam_signals:
+  - investing.com
+  - newsbreak.com

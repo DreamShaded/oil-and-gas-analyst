@@ -145,6 +145,25 @@ def search(query: str, top_k: int = 5) -> None:
                    f" seg={h.get('segment') or '-'}\n{h['text'][:400]}")
 
 
+@app.command("web-search")
+def cli_web_search(
+    query: str,
+    max_results: int = 5,
+    topic: str = "news",
+) -> None:
+    """Поиск через Tavily с фильтром по whitelist/blacklist (config/source-*.yaml)."""
+    from src.tools.web_search import search_web
+    if topic not in {"news", "general"}:
+        raise typer.BadParameter("topic должен быть news или general")
+    res = search_web(query, max_results=max_results, topic=topic)  # type: ignore[arg-type]
+    typer.echo(f"\nЗапрос: {res.query}  ({len(res.snippets)} результатов)\n")
+    for i, s in enumerate(res.snippets, 1):
+        marker = "★" if s.trust > 0 else " "
+        typer.echo(f"{marker} [{i}] {s.source_domain}  {s.published_at or ''}")
+        typer.echo(f"    {s.title}")
+        typer.echo(f"    {s.url}\n")
+
+
 @app.command("eval-retrieval")
 def eval_retrieval(
     golden: Path = typer.Option(Path("data/golden/retrieval-golden.json")),  # noqa: B008

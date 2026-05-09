@@ -70,4 +70,5 @@ data/cache/opec/
 data/cache/opec_woo/
 data/cache/iea_omr/
 data/cache/minfin/
+data/cache/web_search/
 data/minfin/*.xlsx

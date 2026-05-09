@@ -1,0 +1,47 @@
+# Доверенные домены (приоритизируются в web-результатах).
+# Категории — для прозрачности, фильтр работает по объединённому списку.
+
+regulators_agencies:
+  - opec.org
+  - iea.org
+  - eia.gov
+  - federalreserve.gov
+  - cbr.ru
+  - minfin.gov.ru
+  - minenergo.gov.ru
+
+industry_majors:
+  - bp.com
+  - shell.com
+  - exxonmobil.com
+  - chevron.com
+  - totalenergies.com
+  - aramco.com
+  - rosneft.ru
+  - lukoil.com
+  - gazprom.com
+
+press_tier1:
+  - reuters.com
+  - bloomberg.com
+  - ft.com
+  - wsj.com
+  - economist.com
+  - nytimes.com
+
+press_tier2:
+  - argusmedia.com
+  - platts.com
+  - oilprice.com
+  - rystadenergy.com
+  - spglobal.com
+  - kommersant.ru
+  - rbc.ru
+  - interfax.ru
+  - tass.com
+
+research_universities:
+  - bakerinstitute.org
+  - cer.ethz.ch
+  - csis.org
+  - brookings.edu
