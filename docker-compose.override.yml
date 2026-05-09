@@ -21,7 +21,6 @@ services:
       - ./src:/app/src
       - ./main.py:/app/main.py
       - ./prompts:/app/prompts
-      - ./data:/app/data:ro
     environment:
       APP_ENV: dev
       GRADIO_ANALYTICS_ENABLED: "False"

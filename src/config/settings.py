@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     qdrant_api_key: SecretStr | None = None
     rag_collection: str = "oil_gas_reports"
 
+    rag_chunk_size: int = Field(800, ge=200, le=4000)
+    rag_chunk_overlap: int = Field(120, ge=0, le=1000)
+    rag_top_k: int = Field(8, ge=1, le=50)
+    rag_min_score: float = Field(0.30, ge=0.0, le=1.0)
+
     # Внешние API (опционально на этапе 1)
     tavily_api_key: SecretStr | None = None
     eia_api_key: SecretStr | None = None

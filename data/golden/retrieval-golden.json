@@ -1,0 +1,32 @@
+[
+  {
+    "query": "Какая средняя цена Brent в третьем квартале 2024?",
+    "expected_series_ids": ["PET.RBRTE.D"],
+    "expected_sources": ["EIA"]
+  },
+  {
+    "query": "Динамика спотовых цен WTI в 2023 году",
+    "expected_series_ids": ["PET.RWTC.D"],
+    "expected_sources": ["EIA"]
+  },
+  {
+    "query": "Коммерческие запасы нефти США в 2022",
+    "expected_series_ids": ["PET.WCESTUS1.W"],
+    "expected_sources": ["EIA"]
+  },
+  {
+    "query": "Добыча нефти в США еженедельно",
+    "expected_series_ids": ["PET.WCRFPUS2.W"],
+    "expected_sources": ["EIA"]
+  },
+  {
+    "query": "Мировое предложение нефти по STEO",
+    "expected_series_ids": ["STEO.PAPR_WORLD.M"],
+    "expected_sources": ["EIA"]
+  },
+  {
+    "query": "Мировой спрос на нефть по прогнозу STEO",
+    "expected_series_ids": ["STEO.PATC_WORLD.M"],
+    "expected_sources": ["EIA"]
+  }
+]

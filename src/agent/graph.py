@@ -8,7 +8,7 @@ from src.agent.nodes.answer import answer_node
 from src.agent.state import AgentState
 
 
-def _build() -> "CompiledStateGraph":  # type: ignore[name-defined]
+def _build():
     builder = StateGraph(AgentState)
     builder.add_node("answer", answer_node)
     builder.add_edge(START, "answer")
@@ -16,5 +16,5 @@ def _build() -> "CompiledStateGraph":  # type: ignore[name-defined]
     return builder.compile()
 
 @lru_cache(maxsize=1)
-def get_graph():  # noqa: ANN201 — тип из langgraph не экспортируется чисто
+def get_graph():
     return _build()

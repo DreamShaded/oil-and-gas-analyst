@@ -43,7 +43,7 @@ services:
       qdrant:
         condition: service_started
     volumes:
-      - ./data:/app/data:ro
+      - app-data:/app/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
@@ -60,3 +60,4 @@ services:
 
 volumes:
   qdrant-data:
+  app-data:

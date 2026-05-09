@@ -35,10 +35,6 @@ htmlcov/
 .env.*
 !.env.example
 
-# Data — PDFs are large and private
-data/reports/*.pdf
-data/reports/*.PDF
-
 # Docker volumes (local dev)
 .data/
 qdrant_data/
@@ -64,3 +60,14 @@ data/runtime_config.json
 scripts/*
 !scripts/.gitkeep
 !scripts/README.md
+
+data/eia/
+data/reports/*.pdf
+data/reports/*.PDF
+data/raw/
+data/cache/eia/
+data/cache/opec/
+data/cache/opec_woo/
+data/cache/iea_omr/
+data/cache/minfin/
+data/minfin/*.xlsx
