@@ -49,8 +49,15 @@ def build_chat() -> gr.Blocks:
         gr.Markdown(
             "# Нефтегазовый аналитик\n"
         )
+        chatbot = gr.Chatbot(
+            height="72vh",
+            min_height=650,
+            resizable=True,
+            autoscroll=True,
+        )
         gr.ChatInterface(
             fn=_respond,
+            chatbot=chatbot,
             autofocus=True,
             examples=[
                 "Объясни, как формируется спред Brent–Urals.",

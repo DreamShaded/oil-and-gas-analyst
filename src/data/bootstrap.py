@@ -10,6 +10,7 @@ from src.data.sources import (
     opec_downloader,
     opec_momr,
     opec_woo,
+    yahoo_finance,
 )
 from src.rag.ingestion.data_card_builder import Segmentation, build_cards
 from src.rag.retrieval.embedder import Embedder
@@ -26,6 +27,13 @@ def collect_eia(out_dir: Path) -> dict:
     except Exception as e:
         log.warning("bootstrap.eia_bulk_failed", error=str(e))
         return eia_api.fetch_all_default(start=None, end=None, out_dir=out_dir)
+
+
+def collect_yahoo(out_dir: Path) -> None:
+    try:
+        yahoo_finance.fetch_dxy(out_dir)
+    except Exception as e:
+        log.warning("bootstrap.yahoo_failed", error=str(e))
 
 
 def collect_opec_momr(reports_dir: Path, *, limit: int = 6, skip_download: bool = False) -> list[Chunk]:
@@ -145,6 +153,8 @@ def run(data_dir: Path = Path("data"),
     if not skip_eia:
         dataframes = collect_eia(data_dir / "eia") if not offline else {}
         eia_chunks = _eia_dataframes_to_chunks(dataframes, segmentation)
+        if not offline:
+            collect_yahoo(data_dir / "yahoo")
     momr_chunks: list[Chunk] = []
     if not skip_opec_momr:
         momr_chunks = collect_opec_momr(data_dir / "reports",

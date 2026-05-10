@@ -145,6 +145,89 @@ def search(query: str, top_k: int = 5) -> None:
                    f" seg={h.get('segment') or '-'}\n{h['text'][:400]}")
 
 
+@app.command("download-yahoo")
+def download_yahoo(
+    out_dir: Path = typer.Option(Path("data/yahoo")),  # noqa: B008
+) -> None:
+    """Скачать DXY (индекс доллара) через yfinance."""
+    from src.data.sources.yahoo_finance import fetch_dxy
+    df = fetch_dxy(out_dir)
+    typer.echo(f"DXY: {len(df)} строк, {df['period'].min()} … {df['period'].max()}")
+
+
+@app.command()
+def backtest(
+    asset: str = "brent",
+    horizon_months: int = 3,
+    method: str = "sarima",
+    step_months: int = 6,
+) -> None:
+    """Rolling-window out-of-sample backtest. MAPE / RMSE / coverage 80% и 95% CI."""
+    from src.forecasting.backtest import rolling_backtest
+    if asset not in {"brent", "wti", "urals"}:
+        raise typer.BadParameter("asset ∈ {brent, wti, urals}")
+    if method not in {"sarima", "regression"}:
+        raise typer.BadParameter("method ∈ {sarima, regression}")
+    rep = rolling_backtest(asset, method, horizon_months=horizon_months,  # type: ignore[arg-type]
+                           step_months=step_months)
+    typer.echo(f"\n{asset.upper()} / {method} / h={horizon_months}m / windows={rep.n_windows}")
+    typer.echo(f"  MAPE        = {rep.mape_pct:.2f}%")
+    typer.echo(f"  RMSE        = ${rep.rmse:.2f}")
+    typer.echo(f"  Coverage 80% CI = {rep.coverage_80_pct:.1f}% (target 80)")
+    typer.echo(f"  Coverage 95% CI = {rep.coverage_95_pct:.1f}% (target 95)")
+
+
+@app.command("backtest-conformal")
+def cli_backtest_conformal(
+    asset: str = "brent",
+    horizon_months: int = 3,
+    method: str = "sarima",
+    step_months: int = 6,
+) -> None:
+    """Честная оценка conformal-CI: половина окон калибрует, половина — проверка покрытия."""
+    from src.forecasting.conformal_eval import honest_conformal_eval
+    if asset not in {"brent", "wti", "urals"}:
+        raise typer.BadParameter("asset ∈ {brent, wti, urals}")
+    if method not in {"sarima", "regression"}:
+        raise typer.BadParameter("method ∈ {sarima, regression}")
+    rep = honest_conformal_eval(asset, method,  # type: ignore[arg-type]
+                                horizon_months=horizon_months, step_months=step_months)
+    typer.echo(f"\n{asset.upper()} / {method} / h={horizon_months}m — conformal honest eval")
+    typer.echo(f"  Калибровочные окна: {rep.n_calib_windows}, тестовые: {rep.n_test_windows}")
+    typer.echo(f"  q80 per step: {[f'{q:.2f}' for q in rep.q80_per_step]}")
+    typer.echo(f"  q95 per step: {[f'{q:.2f}' for q in rep.q95_per_step]}")
+    typer.echo(f"  Coverage 80% CI: {rep.coverage_80_pct:.1f}% (target 80)")
+    typer.echo(f"  Coverage 95% CI: {rep.coverage_95_pct:.1f}% (target 95)")
+    typer.echo(f"  MAPE: {rep.mape_pct:.2f}%   RMSE: ${rep.rmse:.2f}")
+
+
+@app.command()
+def forecast(
+    asset: str = "brent",
+    horizon_months: int = 3,
+    method: str = "sarima",
+    shock_factor: str | None = typer.Option(None, help="Имя фактора для шока (regression only)"),  # noqa: B008
+    shock_delta: float = typer.Option(0.0, help="Размер шока, в исходных единицах фактора"),  # noqa: B008
+) -> None:
+    """Прогноз цены нефти: SARIMA (univariate) или regression (по фундаменталам)."""
+    from src.forecasting import ScenarioShock, forecast_price
+    if asset not in {"brent", "wti", "urals"}:
+        raise typer.BadParameter("asset ∈ {brent, wti, urals}")
+    if method not in {"sarima", "regression"}:
+        raise typer.BadParameter("method ∈ {sarima, regression}")
+    shocks = None
+    if shock_factor:
+        shocks = [ScenarioShock(factor=shock_factor, delta=shock_delta,
+                                description=f"{shock_factor}{shock_delta:+}")]
+    fc = forecast_price(asset, horizon_months=horizon_months,  # type: ignore[arg-type]
+                        method=method, shocks=shocks)  # type: ignore[arg-type]
+    typer.echo("\n" + fc.interpretation + "\n")
+    typer.echo("Точки прогноза:")
+    for p in fc.points:
+        typer.echo(f"  {p.period}  ${p.point:7.2f}   80%[{p.lower_80:.2f}..{p.upper_80:.2f}]"
+                   f"   95%[{p.lower_95:.2f}..{p.upper_95:.2f}]")
+
+
 @app.command("web-search")
 def cli_web_search(
     query: str,
