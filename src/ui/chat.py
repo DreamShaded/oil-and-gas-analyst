@@ -45,9 +45,11 @@ async def _respond(message: str, history: list[dict[str, str]]) -> AsyncGenerato
 
 
 def build_chat() -> gr.Blocks:
+    """Чат-страница (монтируется на корень `/`). Самомодификация — отдельный URL `/self-mod`."""
     with gr.Blocks(title="Нефтегазовый аналитик") as ui:
         gr.Markdown(
-            "# Нефтегазовый аналитик\n"
+            "# Нефтегазовый аналитик\n\n"
+            "[🧠 Самомодификация →](/self-mod/)"
         )
         chatbot = gr.Chatbot(
             height="72vh",
@@ -62,6 +64,7 @@ def build_chat() -> gr.Blocks:
             examples=[
                 "Объясни, как формируется спред Brent–Urals.",
                 "Какие ключевые факторы влияют на цену нефти в краткосрочной перспективе?",
+                "Спрогнозируй цену Brent на 3 месяца",
             ],
         )
     return ui

@@ -8,7 +8,9 @@ from src.agent.nodes.call_forecast import call_forecast_node
 from src.agent.nodes.classify_intent import classify_intent_node
 from src.agent.nodes.compose_answer import compose_answer_node
 from src.agent.nodes.rag_retrieve import rag_retrieve_node
+from src.agent.nodes.reflect import reflect_node
 from src.agent.nodes.refuse import refuse_node
+from src.agent.nodes.self_mod_observer import self_mod_observer_node
 from src.agent.nodes.sufficiency_check import sufficiency_check_node
 from src.agent.nodes.web_search import web_search_node
 from src.agent.state import AgentState
@@ -29,6 +31,12 @@ def _route_by_sufficiency(state: AgentState) -> str:
     return "compose_answer" if state.get("rag_sufficient") else "web_search"
 
 
+def _route_after_reflect(state: AgentState) -> str:
+    if state.get("reflect_verdict") == "fix":
+        return "compose_answer"
+    return "self_mod_observer"
+
+
 def _build():
     g = StateGraph(AgentState)
     g.add_node("classify_intent", classify_intent_node)
@@ -37,6 +45,8 @@ def _build():
     g.add_node("web_search", web_search_node)
     g.add_node("call_forecast", call_forecast_node)
     g.add_node("compose_answer", compose_answer_node)
+    g.add_node("reflect", reflect_node)
+    g.add_node("self_mod_observer", self_mod_observer_node)
     g.add_node("refuse", refuse_node)
 
     g.add_edge(START, "classify_intent")
@@ -53,7 +63,12 @@ def _build():
     })
     g.add_edge("web_search", "compose_answer")
     g.add_edge("call_forecast", "compose_answer")
-    g.add_edge("compose_answer", END)
+    g.add_edge("compose_answer", "reflect")
+    g.add_conditional_edges("reflect", _route_after_reflect, {
+        "compose_answer": "compose_answer",
+        "self_mod_observer": "self_mod_observer",
+    })
+    g.add_edge("self_mod_observer", END)
     g.add_edge("refuse", END)
     return g.compile()
 

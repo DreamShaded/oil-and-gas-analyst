@@ -20,4 +20,13 @@ async def sufficiency_check_node(state: AgentState) -> dict:
         if hits else "RAG не вернул чанков"
     )
     log.info("sufficiency.checked", enough=enough, reason=reason)
-    return {"rag_sufficient": enough, "rag_sufficient_reason": reason}
+    signals = list(state.get("signals") or [])
+    if not enough:
+        signals.append("low_sufficiency")
+    if hits and hits[0].get("score", 0) < 0.20:
+        signals.append("very_low_top_score")
+    return {
+        "rag_sufficient": enough,
+        "rag_sufficient_reason": reason,
+        "signals": signals,
+    }

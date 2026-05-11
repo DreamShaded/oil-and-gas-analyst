@@ -60,6 +60,29 @@ class Settings(BaseSettings):
         return self.app_env == "dev"
 
 
-@lru_cache(maxsize=1)
+_RUNTIME_OVERRIDE_KEYS: dict[str, str] = {
+    "rag.top_k":         "rag_top_k",
+    "rag.min_score":     "rag_min_score",
+    "rag.chunk_size":    "rag_chunk_size",
+    "rag.chunk_overlap": "rag_chunk_overlap",
+}
+
+
 def get_settings() -> Settings:
+    """Settings + runtime overrides из data/runtime_config.json (Tier-1 self-mod).
+    Не кэшируем: правка через `apply_or_queue` должна сразу влиять на следующий вызов."""
+    base = _build_settings()
+    from src.self_mod.live_config import load_overrides
+    overrides = load_overrides()
+    if not overrides:
+        return base
+    updates: dict[str, object] = {}
+    for dotted, settings_field in _RUNTIME_OVERRIDE_KEYS.items():
+        if dotted in overrides:
+            updates[settings_field] = overrides[dotted]
+    return base.model_copy(update=updates) if updates else base
+
+
+@lru_cache(maxsize=1)
+def _build_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import gradio as gr
+import uvicorn
+from fastapi import FastAPI
+
 from src.config import get_settings
 from src.ui.chat import build_chat
+from src.ui.self_mod_panel import build_self_mod_panel
 from src.utils.logging import configure_logging, get_logger
 
 
@@ -36,13 +41,28 @@ def _ensure_indexed() -> None:
     log.info("startup.first_run_bootstrap_done", **summary)
 
 
+def _build_fastapi() -> FastAPI:
+    api = FastAPI(title="Oil & Gas Analyst")
+
+    @api.get("/healthz")
+    def healthz() -> dict:
+        return {"status": "ok"}
+
+    chat = build_chat()
+    panel = build_self_mod_panel()
+    api = gr.mount_gradio_app(api, panel, path="/self-mod")
+    api = gr.mount_gradio_app(api, chat, path="/")
+    return api
+
+
 def run() -> None:
     settings = get_settings()
     configure_logging(env=settings.app_env, level="INFO")
     log = get_logger("app")
     _ensure_indexed()
     log.info("app.start", host=settings.app_host, port=settings.app_port, env=settings.app_env)
-    build_chat().launch(server_name=settings.app_host, server_port=settings.app_port)
+    api = _build_fastapi()
+    uvicorn.run(api, host=settings.app_host, port=settings.app_port, log_level="info")
 
 
 if __name__ == "__main__":

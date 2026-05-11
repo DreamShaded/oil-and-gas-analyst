@@ -3,15 +3,18 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, ToolMessage
 
 from src.agent.state import AgentState
+from src.agent.tools_for_llm import ALL_TOOLS, propose_self_improvement
 from src.llm.client import build_chat_model
 from src.prompts import load_prompt
 from src.utils.logging import get_logger
 
 log = get_logger("agent.compose_answer")
 MAX_CHUNK_TEXT = 700
+MAX_TOOL_HOPS = 3
+_TOOL_REGISTRY = {t.name: t for t in ALL_TOOLS}
 
 
 def _format_rag_chunks(chunks: list[dict[str, Any]]) -> str:
@@ -76,13 +79,50 @@ def _build_context(state: AgentState) -> str:
 
 
 async def compose_answer_node(state: AgentState) -> dict:
+    from src.self_mod import get_override
     context_block = _build_context(state)
-    system = SystemMessage(content=load_prompt(
+    system_text = load_prompt(
         "nodes/compose-answer.system",
         context_block=context_block,
         today=date.today().isoformat(),
-    ))
-    llm = build_chat_model()
-    response = await llm.ainvoke([system, *state["messages"]])
-    log.info("compose.done", ctx_len=len(context_block))
-    return {"messages": [response]}
+    )
+    addendum = get_override("prompt.addendum")
+    if addendum and isinstance(addendum, str) and addendum.strip():
+        system_text += (
+            "\n\n## Адаптация поведения (накоплено через самоулучшение)\n\n"
+            + addendum.strip()
+        )
+    system = SystemMessage(content=system_text)
+    base_llm = build_chat_model()
+    try:
+        llm = base_llm.bind_tools(ALL_TOOLS)
+    except Exception as e:
+        log.warning("compose.bind_tools_failed", error=str(e))
+        llm = base_llm
+
+    convo = [system, *state["messages"]]
+    new_messages: list = []
+    for hop in range(MAX_TOOL_HOPS + 1):
+        response = await llm.ainvoke(convo)
+        new_messages.append(response)
+        tool_calls = getattr(response, "tool_calls", None) or []
+        if not tool_calls or hop == MAX_TOOL_HOPS:
+            break
+        log.info("compose.tool_calls", n=len(tool_calls), hop=hop)
+        convo.append(response)
+        for call in tool_calls:
+            name = call.get("name") if isinstance(call, dict) else call.name
+            args = call.get("args") if isinstance(call, dict) else call.args
+            call_id = call.get("id") if isinstance(call, dict) else call.id
+            tool_obj = _TOOL_REGISTRY.get(name) or propose_self_improvement
+            try:
+                result = await tool_obj.ainvoke(args)
+            except Exception as e:
+                result = f"Ошибка выполнения tool {name}: {e}"
+                log.warning("compose.tool_failed", tool=name, error=str(e))
+            tool_msg = ToolMessage(content=str(result), tool_call_id=call_id, name=name)
+            new_messages.append(tool_msg)
+            convo.append(tool_msg)
+
+    log.info("compose.done", ctx_len=len(context_block), final_msgs=len(new_messages))
+    return {"messages": new_messages}

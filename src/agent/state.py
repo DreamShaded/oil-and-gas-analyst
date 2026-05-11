@@ -16,3 +16,9 @@ class AgentState(TypedDict, total=False):
     rag_sufficient_reason: str | None
     web_snippets: list[dict[str, Any]]
     forecast: dict[str, Any] | None
+    # Reflect-цикл
+    reflections: int
+    reflect_verdict: Literal["ok", "fix"] | None
+    reflect_reason: str | None
+    # Signals для self-mod observer (явные триггеры дополнительно к 5% sampling)
+    signals: list[str]
