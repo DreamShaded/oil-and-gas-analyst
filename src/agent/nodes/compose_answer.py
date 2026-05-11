@@ -17,35 +17,64 @@ MAX_TOOL_HOPS = 3
 _TOOL_REGISTRY = {t.name: t for t in ALL_TOOLS}
 
 
+_SOURCE_PRETTY = {
+    "EIA":    "EIA Open Data",
+    "OPEC":   "OPEC",
+    "IEA":    "IEA",
+    "Minfin": "Минфин РФ",
+}
+
+
+def _pretty_source(name: str | None) -> str:
+    return _SOURCE_PRETTY.get(name or "", name or "?")
+
+
+def _human_marker_for_chunk(c: dict[str, Any]) -> str:
+    """[EIA Open Data · Цена нефти Brent (спот) · 4-й квартал 2024]
+    или [Минфин РФ · НДПИ · 2024-Q4]. Без сырых snake_case series_id."""
+    source = _pretty_source(c.get("source"))
+    title = c.get("title") or c.get("metric") or ""
+    parts: list[str] = [source]
+    if title:
+        parts.append(title)
+    seg = c.get("segment")
+    if seg:
+        parts.append(_human_period(seg))
+    elif c.get("period_start"):
+        parts.append(str(c["period_start"]))
+    return "[" + " · ".join(parts) + "]"
+
+
+def _human_period(seg: str) -> str:
+    if "Q" in seg:
+        year, q = seg.split("-Q", 1)
+        return f"{q}-й квартал {year}"
+    return seg
+
+
 def _format_rag_chunks(chunks: list[dict[str, Any]]) -> str:
     if not chunks:
         return "(нет данных из RAG)"
-    lines = ["### Данные RAG"]
+    lines = ["### Данные из RAG (используй ИМЕННО эти маркеры в ответе)"]
     for i, c in enumerate(chunks, 1):
-        marker_parts = [c.get("source", "?")]
-        if c.get("series_id"):
-            marker_parts.append(f"серия {c['series_id']}")
-        if c.get("segment"):
-            marker_parts.append(c["segment"])
-        elif c.get("period_start"):
-            marker_parts.append(c["period_start"])
-        marker = "[" + ", ".join(str(x) for x in marker_parts) + "]"
-        title = c.get("title") or c.get("metric") or "-"
+        marker = _human_marker_for_chunk(c)
+        url = c.get("url")
+        url_hint = f"  · URL: {url}" if url and isinstance(url, str) and url.startswith(("http", "data/")) else ""
         text = (c.get("text") or "")[:MAX_CHUNK_TEXT]
-        lines.append(f"\n**Чанк {i}** {marker} score={c.get('score', 0):.2f}  {title}\n{text}")
+        lines.append(f"\n**Чанк {i}** {marker}{url_hint}  score={c.get('score', 0):.2f}\n{text}")
     return "\n".join(lines)
 
 
 def _format_web(snippets: list[dict[str, Any]]) -> str:
     if not snippets:
         return ""
-    lines = ["### Веб-сниппеты (свежее)"]
+    lines = ["### Веб-сниппеты (используй ИМЕННО эти маркеры в ответе)"]
     for i, s in enumerate(snippets, 1):
-        marker = f"[Источник: {s['source_domain']}, web"
-        if s.get("published_at"):
-            marker += f", {s['published_at']}"
-        marker += "]"
-        lines.append(f"\n**Сниппет {i}** {marker}\n{s.get('title', '')}\n{(s.get('snippet') or '')[:600]}")
+        date = s.get("published_at") or ""
+        marker = f"[Источник: {s['source_domain']} · web{(' · ' + date) if date else ''}]"
+        url = s.get("url") or ""
+        url_hint = f"  · URL: {url}" if url else ""
+        lines.append(f"\n**Сниппет {i}** {marker}{url_hint}\n{s.get('title', '')}\n{(s.get('snippet') or '')[:600]}")
     return "\n".join(lines)
 
 

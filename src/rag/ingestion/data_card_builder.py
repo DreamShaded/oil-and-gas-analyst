@@ -27,11 +27,13 @@ def build_cards(df: pd.DataFrame, *, source: str, segmentation: Segmentation = "
     prev_mean: float | None = None
     yoy_history: dict[str, float] = {}
 
+    is_flow = _is_flow_metric(unit)
     for end_ts, sub in grouped:
         if sub.empty:
             continue
         seg_label = _segment_label(end_ts, segmentation)
         mean = float(sub["value"].mean())
+        total = float(sub["value"].sum())
         vmin = float(sub["value"].min())
         vmax = float(sub["value"].max())
         period_start = sub.index.min().date()
@@ -48,11 +50,23 @@ def build_cards(df: pd.DataFrame, *, source: str, segmentation: Segmentation = "
             series_id=series_id,
             segment=seg_label,
             metric=metric,
-            text=_render_card_text(metric, unit, seg_label, mean, vmin, vmax, delta_prev, delta_yoy),
+            text=_render_card_text(metric, unit, seg_label, mean, total, vmin, vmax,
+                                   delta_prev, delta_yoy, is_flow=is_flow),
             period_start=period_start,
             period_end=period_end,
         ))
     return cards
+
+
+def _is_flow_metric(unit: str) -> bool:
+    """Flow-метрика — то, что суммируется за период (деньги, объёмы за период).
+    Stock/price метрики — то, что усредняется (цены, остатки)."""
+    u = unit.lower()
+    flow_markers = ["руб", "rub", "usd", "$", "млрд", "трлн", "thousand barrels", "тыс барр"]
+    # Цены и индексы — не flow, даже если unit содержит USD/barrel.
+    if "/barrel" in u or "/баррель" in u or "/day" in u or "index" in u:
+        return False
+    return any(m in u for m in flow_markers)
 
 
 def _segment_label(ts: pd.Timestamp, seg: Segmentation) -> str:
@@ -83,13 +97,28 @@ def _fmt_delta(d: tuple[float, float] | None) -> str:
     return f"{sign}{abs(abs_d):.2f} ({sign}{abs(rel_d):.1f}%)"
 
 
-def _render_card_text(metric: str, unit: str, segment: str, mean: float,
+def _segment_human(segment: str) -> str:
+    if "Q" in segment:
+        year, q = segment.split("-Q")
+        return f"{q}-й квартал {year} года"
+    return f"{segment} год"
+
+
+def _render_card_text(metric: str, unit: str, segment: str, mean: float, total: float,
                       vmin: float, vmax: float,
                       delta_prev: tuple[float, float] | None,
-                      delta_yoy: tuple[float, float] | None) -> str:
-    return (
-        f"{metric} ({unit}), сегмент {segment}.\n"
-        f"Среднее: {mean:.2f}. Мин/макс: {vmin:.2f} / {vmax:.2f}.\n"
-        f"Δ к предыдущему сегменту: {_fmt_delta(delta_prev)}; "
-        f"Δ год-к-году: {_fmt_delta(delta_yoy)}."
+                      delta_yoy: tuple[float, float] | None,
+                      *, is_flow: bool) -> str:
+    head = f"{metric} — {_segment_human(segment)} ({segment}). Единица: {unit}.\n"
+    if is_flow:
+        body = (
+            f"Итог за период (сумма): {total:.2f}. "
+            f"Среднемесячное: {mean:.2f}. Мин/макс месяца: {vmin:.2f} / {vmax:.2f}.\n"
+        )
+    else:
+        body = f"Среднее: {mean:.2f}. Мин/макс: {vmin:.2f} / {vmax:.2f}.\n"
+    tail = (
+        f"Δ среднего к предыдущему сегменту: {_fmt_delta(delta_prev)}; "
+        f"Δ среднего год-к-году: {_fmt_delta(delta_yoy)}."
     )
+    return head + body + tail

@@ -106,8 +106,13 @@ class QdrantStore:
 
 
 def _point_key(c: Chunk) -> str:
+    """ID точки в Qdrant. ВКЛЮЧАЕТ `extra.segment` + period_start — иначе data-cards
+    разных кварталов одной series_id (и chunk_index=0) схлопывались в одну точку."""
     src = c.source
-    return f"{src.source}|{src.series_id or ''}|{src.title or ''}|{src.url or ''}|{c.chunk_index}"
+    seg = (c.extra or {}).get("segment", "")
+    period = c.period_start.isoformat() if c.period_start else ""
+    return (f"{src.source}|{src.series_id or ''}|{src.title or ''}|"
+            f"{src.url or ''}|{seg}|{period}|{c.chunk_index}")
 
 
 def _payload(c: Chunk) -> dict[str, Any]:

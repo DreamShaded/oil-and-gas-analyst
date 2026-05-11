@@ -12,7 +12,9 @@ from src.prompts import load_prompt
 from src.utils.logging import get_logger
 
 log = get_logger("agent.reflect")
-MAX_REFLECTIONS = 2
+# Один ретрай максимум: на сильных моделях (Claude/GPT) первый драфт почти всегда
+# приемлем; больше итераций = мерцание UI и удвоенный вызов LLM без пользы.
+MAX_REFLECTIONS = 1
 
 
 def _last_ai_text(messages: list) -> str:

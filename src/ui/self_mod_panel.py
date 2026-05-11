@@ -146,7 +146,6 @@ def build_self_mod_panel() -> gr.Blocks:
         # Объявляем все целевые компоненты, чтобы события могли на них ссылаться.
         pending_state = gr.State(initial_pending)
         gr.Markdown("## Ожидают одобрения")
-        cards_placeholder = gr.Markdown(visible=False)  # для @gr.render
 
         with gr.Accordion("Текущая активная поправка поведения", open=True):
             current_md = gr.Markdown(_current_addendum_md())
@@ -180,7 +179,6 @@ def build_self_mod_panel() -> gr.Blocks:
         # Карточки рендерятся динамически по pending_state с собственными кнопками.
         @gr.render(inputs=pending_state)
         def render_cards(pending):
-            cards_placeholder.update()
             if not pending:
                 gr.Markdown("_Нет ожидающих предложений._")
                 return

@@ -23,19 +23,59 @@ def _to_lc_messages(history: list[dict[str, str]]) -> list[BaseMessage]:
     return out
 
 
+# В чат стримим только токены пользовательских узлов. Служебные узлы
+# (classify_intent → JSON, reflect → критика, self_mod_observer → tool calls)
+# не должны попадать в UI.
+_USER_FACING_NODES = {"compose_answer", "refuse"}
+
+
+def _normalize_content(content) -> str:
+    """LLM-провайдеры возвращают content по-разному:
+       OpenAI → str, Anthropic → list[dict] с блоками {'type': 'text', 'text': '...'}."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") in ("text", "text_delta"):
+                # text / text_delta — варианты Anthropic stream
+                parts.append(str(block.get("text") or ""))
+        return "".join(parts)
+    return str(content or "")
+
+
 async def _respond(message: str, history: list[dict[str, str]]) -> AsyncGenerator[str, None]:
     graph = get_graph()
     state = {"messages": [*_to_lc_messages(history), HumanMessage(content=message)]}
 
     buffer = ""
+    compose_attempt = 0
     try:
         async for event in graph.astream_events(state, version="v2"):
-            if event.get("event") == "on_chat_model_stream":
-                chunk = event["data"].get("chunk")
-                token = getattr(chunk, "content", "") or ""
-                if token:
-                    buffer += token
+            ev = event.get("event")
+            node = (event.get("metadata") or {}).get("langgraph_node")
+            # Новый запуск compose (reflect-retry) — сообщаем пользователю что
+            # переписываем, и обнуляем буфер. Без этого UI «склеит» два разных
+            # ответа подряд.
+            if ev == "on_chain_start" and event.get("name") == "compose_answer":
+                compose_attempt += 1
+                if compose_attempt > 1:
+                    buffer = "_(переписываю ответ — обнаружен недочёт)_\n\n"
                     yield buffer
+                else:
+                    buffer = ""
+                continue
+            if ev != "on_chat_model_stream":
+                continue
+            if node not in _USER_FACING_NODES:
+                continue
+            chunk = event["data"].get("chunk")
+            token = _normalize_content(getattr(chunk, "content", None))
+            if token:
+                buffer += token
+                yield buffer
     except Exception as exc:  # noqa: BLE001 — показываем причину пользователю
         _log.error("chat.stream_error", error=str(exc))
         yield (buffer + "\n\n_⚠ Ошибка обращения к LLM: " + str(exc) + "_") if buffer else (

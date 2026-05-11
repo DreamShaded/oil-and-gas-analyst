@@ -60,7 +60,7 @@ def _record_to_dataframe(record: dict, series: EIASeries) -> pd.DataFrame:
     df["value"] = pd.to_numeric(df["value"], errors="coerce")
     df = df.dropna(subset=["value"]).sort_values("period").reset_index(drop=True)
     df["series_id"] = series.series_id
-    df["metric"] = series.metric
+    df["metric"] = series.label_ru or series.metric
     df["unit"] = series.unit
     df["frequency"] = series.frequency
     df["source"] = "EIA"

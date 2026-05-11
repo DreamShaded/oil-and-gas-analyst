@@ -82,7 +82,7 @@ def _to_dataframe(rows: list[dict[str, Any]], series: EIASeries) -> pd.DataFrame
     df["value"] = pd.to_numeric(df["value"], errors="coerce")
     df = df.dropna(subset=["value"]).sort_values("period").reset_index(drop=True)
     df["series_id"] = series.series_id
-    df["metric"] = series.metric
+    df["metric"] = series.label_ru or series.metric
     df["unit"] = series.unit
     df["frequency"] = series.frequency
     df["source"] = "EIA"
@@ -108,7 +108,7 @@ def load_local_series(series_id: str, data_dir: Path) -> pd.DataFrame:
     if "series_id" not in df.columns:
         meta = find_series(series_id)
         df["series_id"] = series_id
-        df["metric"] = meta.metric if meta else series_id
+        df["metric"] = (meta.label_ru or meta.metric) if meta else series_id
         df["unit"] = meta.unit if meta else ""
         df["frequency"] = meta.frequency if meta else "monthly"
         df["source"] = "EIA"
