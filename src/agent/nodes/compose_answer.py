@@ -12,7 +12,7 @@ from src.prompts import load_prompt
 from src.utils.logging import get_logger
 
 log = get_logger("agent.compose_answer")
-MAX_CHUNK_TEXT = 700
+MAX_CHUNK_TEXT = 1500
 MAX_TOOL_HOPS = 3
 _TOOL_REGISTRY = {t.name: t for t in ALL_TOOLS}
 

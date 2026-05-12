@@ -24,10 +24,14 @@ def _route_by_intent(state: AgentState) -> str:
         return "web_search"
     if intent == "out_of_scope":
         return "refuse"
+    # rag_first и rag_plus_web — оба идут через RAG; различие — на следующем шаге.
     return "rag_retrieve"
 
 
 def _route_by_sufficiency(state: AgentState) -> str:
+    # Для смешанных запросов web всегда нужен (актуальная часть), независимо от sufficiency.
+    if state.get("intent") == "rag_plus_web":
+        return "web_search"
     return "compose_answer" if state.get("rag_sufficient") else "web_search"
 
 

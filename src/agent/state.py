@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal, TypedDict
 
 from langgraph.graph.message import add_messages
 
-Intent = Literal["forecast", "rag_first", "web_only", "out_of_scope"]
+Intent = Literal["forecast", "rag_first", "rag_plus_web", "web_only", "out_of_scope"]
 
 
 class AgentState(TypedDict, total=False):

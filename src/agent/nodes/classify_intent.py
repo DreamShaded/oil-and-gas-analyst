@@ -13,7 +13,7 @@ from src.utils.logging import get_logger
 
 log = get_logger("agent.classify_intent")
 
-VALID_INTENTS = {"forecast", "rag_first", "web_only", "out_of_scope"}
+VALID_INTENTS = {"forecast", "rag_first", "rag_plus_web", "web_only", "out_of_scope"}
 
 
 def _last_human_text(messages: list) -> str:
